@@ -2,14 +2,25 @@
 SetBatchLines, -1
 
 ; ---------------- CONFIGURABLES ----------------
-currentRealm := 27                                                                  ; --- Input '2' if Realm 2
+currentRealm := 9                                                                  ; --- Input '2' if Realm 2
 maxRealm     := 29
-resetAfterBT := false                                                               ; --- Reset after breakthrough
+maxRealmBTTime := 120000                                                            ; --- Time taken to breakthrough max realm (Not Ascend)
+resetAfterBT := false                                                               ; --- Reset after breakthrough [Not implemented yet]
+consumePills := true                                                                ; --- Consume Pills (Restoration, Soul Pills)
+equipItems := true                                                                  ; --- Auto equip bracelets, rings
+noOfRealmsBTSkip := 10                                                              ; --- IMPORTANT: Breakthrough time set to 5s, min: 0 [Set value to realm where BT time <5s]
+btIntervalInput := ""                                                               ; --- Time between each BT (prevents false BTs), set to "" for default [trainingTime + CultivationTime - 30s]
+bypassBTInterval := 10                                                              ; --- Determines which realm to bypassBTInterval, BT intervals will be 10s from this realm onwards
+
+;-- BreakThrough Formula Calculation  
+base := 12000                                                                       ; --- BT Duration: [Formula: base + ((currentRealm - offset) * step)]
+step := 1000                                                                        ; --- Formula is ignored by noOfRealmsBTSkip and maxRealmBTTime
+offset := 10
 
 AscendImage := "[Your Image Path]\Ascend.png"      ;---- Provide breakthrough image path 
 BTImage := "[Your Image Path]\BreakThrough.png"    ;---- Provide ascend image path 
 
-; ---- Main loop ----
+; ---- Main loop ---- [Do NOT CONFIGURE FROM HERE ONWARDS UNLESS YOU KNOW WHAT YOU ARE DOING!]
 mainState := "train_start"  -- currentAction
 nextMainTime := 0
 
@@ -20,9 +31,10 @@ actionInterval := 1000 ;-- CD between inputs
 ; ---- Breakthrough ----
 underBT := false     ;-- User is undergoing BT
 btEnd := 0           ;-- Tracks BT time
-btInterval := 45000  ;-- Prevent false BTs
+btInterval := 0      ;-- CalculateIntervals() overwrites 
+
 btNextAllowed := 0   ;
-btDuration := 0  ;-- CalculateIntervals() overwrites 
+btDuration := 0  ; -- CalculateIntervals() overwrites 
 
 ; ---- Ascension ----
 underAscend := false
@@ -196,7 +208,7 @@ AscendHandler:
         Click, 1293, 764
         Sleep, 500 
 
-        ascendEnd := now + 120000
+        ascendEnd := now + 80000
         ascendPhase := "waiting"
         return
     }
@@ -282,14 +294,13 @@ return
 FinishAscend:
     if(!do)
         return
-
+        
     currentRealm := 1
+    maxRealm++
     intervals := CalculateIntervals(currentRealm)
     cultivateTime := intervals.cultivateTime
     btDuration := intervals.btDuration
     btInterval := intervals.btInterval
-
-    gosub, EquipSoulRings
 
     underAscend := false
     main_state := "train_start"
@@ -308,11 +319,12 @@ UpdateToolTip:
     mins := (mins < 10 ? "0" . mins : mins)
     secs := (secs < 10 ? "0" . secs : secs)
 
-    formatTrainingTime := MsToHMS(trainingTime)
-    formatCultivateTime := MsToHMS(cultivateTime)
-    formatBTTime := MsToHMS(btDuration)
+    fTrainTime := MsToHMS(trainingTime)
+    fCultivateTime := MsToHMS(cultivateTime)
+    fBTTime := MsToHMS(btDuration)
+    fBTInterval := MsToHMS(btInterval)
 
-    ToolTip, Macro RUNNING - %hrs%:%mins%:%secs% `nCurrent Action: %currentAction% `nRealm: %currentRealm% `nTraining: %formatTrainingTime% `nCultivate: %formatCultivateTime% `nBT Time: %formatBTTime%, 1316, 455
+    ToolTip, Macro RUNNING - %hrs%:%mins%:%secs% `nCurrent Action: %currentAction% `nRealm: %currentRealm% `nTraining: %fTrainTime% Cultivate: %fCultivateTime% `nBT Time: %fBTTime% `nBT Interval: %fBTInterval%, 1316, 455
 return
 
 RemoveToolTip:
@@ -324,19 +336,30 @@ return
 ; Higher realm - lower Cultivation time, Higher BreakThrough time
 
 CalculateIntervals(realm) {
+    global trainingTime, maxRealmBTTime, noOfRealmsBTSkip, bypassBTInterval, base, offset, step, maxRealm, btIntervalInput
+
+    ; --- Handles Cultivation Duration
     cultivateTime := 60000 - ((realm - 1) * 4000)
     if (cultivateTime < 20000)
         cultivateTime := 20000
 
-    if (realm <= 10) {
+    ; --- Handles Breakthough Duration
+    if (noOfRealmsBTSkip > 0 && realm <= noOfRealmsBTSkip)
         btDuration := 5000
-        btInterval := cultivateTime + trainingTime - 120000
-    }else if(realm == maxRealm){
-        btDuration := 120000
-    }else {
-        btInterval := 20000
-        btDuration := 12000 + ((realm - 10) * 1000)
-    }
+    else if (realm == maxRealm)
+        btDuration := maxRealmBTTime
+    else
+        btDuration := base + ((realm - offset) * step)
+
+    ; --- Handles Breakthough Interval 
+    if (realm >= bypassBTInterval)
+        btInterval := 10000
+    else if (btIntervalInput == "")
+        btInterval := cultivateTime + trainingTime - 30000
+    else
+        btInterval := btIntervalInput
+    
+
     return { cultivateTime: cultivateTime, btDuration: btDuration, btInterval: btInterval}
 }
 
@@ -447,31 +470,35 @@ SelectItem(option){
 }
 
 UseItem(){
-    Sleep, 500
+    Sleep, 100
     Click, 1455, 811
     Sleep, 1000
 }
     
 RemoveQiItems:
-    Sleep, 500
+    Sleep, 1000
     Click, 77, 745
-    Sleep, 500
+    Sleep, 1000
     Click, 692, 816
     Sleep, 1000
     Click, 1210, 816
     Sleep, 1000
     Click, 77, 745
-    Sleep, 500
+    Sleep, 1000
 return
 
 EatRestorationPills:
+    if(!consumePills)
+        return
     Click, 78, 932
-    Sleep, 500
+    Sleep, 1000
     BackPackFilter("pills", false)
+    Click, 448, 416   ; Click first item to prevent double clicking
+    Sleep, 1000
     Click, 693, 418
-    Sleep, 500
+    Sleep, 1000
     SelectItem(1)
-    Sleep, 500
+    Sleep, 1000
     SelectItem(1)
     Sleep, 1000
     UseItem()
@@ -481,13 +508,17 @@ EatRestorationPills:
 return
 
 EatSoulChancePill:
-    Click, 78, 932
-    Sleep, 500
+    if(!consumePills)
+        return
+    Click, 78, 932 
+    Sleep, 1000
     BackPackFilter("pills", false)
-    Click, 926, 416
-    Sleep, 500
+    Click, 448, 416   ; Click first item to prevent double clicking
+    Sleep, 1000
+    Click, 916, 413
+    Sleep, 1000
     SelectItem(1)
-    Sleep, 500
+    Sleep, 1000
     SelectItem(1)
     Sleep, 1000
     UseItem()
@@ -497,17 +528,21 @@ EatSoulChancePill:
 return
 
 EquipSoulBracelets:
+    if(!equipItems)
+        return
     gosub, RemoveQiItems
-    Sleep, 500
+    Sleep, 1000
     Click, 78, 932
-    Sleep, 500
+    Sleep, 1000
     BackPackFilter("artifacts", false)
+    Click, 448, 416   ; Click first item to prevent double clicking
+    Sleep, 1000
     Click, 803, 674
-    Sleep, 500
+    Sleep, 1000
     SelectItem(1)
     Sleep, 1000
     UseItem()
-    Sleep, 500
+    Sleep, 1000
     SelectItem(1)
     Sleep, 1000
     UseItem()
@@ -517,21 +552,25 @@ EquipSoulBracelets:
 return
 
 EquipSoulRings:
+    if(!equipItems)
+        return
     gosub, RemoveQiItems
-    Sleep, 500
+    Sleep, 1000
     Click, 78, 932
-    Sleep, 500
+    Sleep, 1000
     BackPackFilter("artifacts", false)
+    Click, 448, 416   ; Click first item to prevent double clicking
+    Sleep, 1000
     Click, 1038, 407
-    Sleep, 500
+    Sleep, 1000
     SelectItem(1)
     Sleep, 1000
     UseItem()
-    Sleep, 500
+    Sleep, 1000
     SelectItem(1)
     Sleep, 1000
     UseItem()
     BackPackFilter("artifacts", true)
     Click, 1651, 274
-    Sleep, 500
+    Sleep, 1000
 return
