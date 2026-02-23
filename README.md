@@ -16,12 +16,12 @@ Pre-requisites
 
 Set-Up Guide
 1. Configuration/ Customisation
-There are 2 places where you can configure - CONFIGURABLES [line 4] and CalculateIntervals() [line 326] 
-The rest of the code can be comfigured but is not recommended unless you know what you are doing
+- There are 2 places where you can configure - CONFIGURABLES [line 4] and CalculateIntervals() [line 326] 
+- The rest of the code can be comfigured but is not recommended unless you know what you are doing
 
 Here's what the configurations affect
-CONFIGURABLES - currentRealm, maxRealm and resetAfterBreakthrough
-CalculateIntervals() - cultivateTime, breakthroughDuration, breakthroughInterval
+- CONFIGURABLES - currentRealm, maxRealm and resetAfterBreakthrough
+- CalculateIntervals() - cultivateTime, breakthroughDuration, breakthroughInterval
 
 2. Configure 'ITEM / BACKPACK HELPERS' section
 The codes under 'ITEM / BACKPACK HELPERS' (line 376) works those who are using 24 inch monitor and may not work for the rest 
