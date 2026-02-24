@@ -15,7 +15,7 @@ btIntervalInput := 0                                                            
 bypassBTInterval := 1                                                               ; --- Determines which realm to bypassBTInterval, BT intervals will be 1s from this realm onwards
 
 ;-- BreakThrough Formula Calculation  
-noOfRealmsBTSkip := 10                                                              ; --- IMPORTANT: Breakthrough time set to 1s, min: 0 [Set value to realm where BT time <1s]
+noOfRealmsBTSkip := 10                                                              ; --- IMPORTANT: Breakthrough time set to 2s, min: 0 [Set value to realm where BT time <1s]
 base := 12000                                                                       ; --- BT Duration: [Formula: base + ((currentRealm - offset) * step)]
 step := 1000                                                                        ; --- Formula is ignored by noOfRealmsBTSkip and maxRealmBTTime
 offset := 10
@@ -342,7 +342,7 @@ CalculateIntervals(realm) {
 
     ; --- Handles Breakthough Duration
     if (noOfRealmsBTSkip > 0 && realm <= noOfRealmsBTSkip)
-        btDuration := 1000
+        btDuration := 2000
     else if (realm == maxRealm)
         btDuration := maxRealmBTTime
     else
