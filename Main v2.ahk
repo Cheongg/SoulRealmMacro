@@ -7,12 +7,12 @@ SetBatchLines, -1
 ; ---------------- CONFIGURABLES ----------------
 currentRealm := 9                                                                  ; --- Input '2' if Realm 2
 maxRealm     := 29
-maxRealmBTTime := 120000                                                            ; --- Time taken to breakthrough max realm (Not Ascend)
+maxRealmBTTime := 5000                                                              ; --- Time taken to breakthrough max realm (Not Ascend)
 resetAfterBT := false                                                               ; --- Reset after breakthrough [Not implemented yet]
 consumePills := true                                                                ; --- Consume Pills (Soul Pills)
 equipItems := true                                                                  ; --- Auto equip bracelets, rings
 btIntervalInput := 0                                                                ; --- Time between each BT (prevents false BTs), set to "" for default [trainingTime + CultivationTime - 30s]
-bypassBTInterval := 10                                                              ; --- Determines which realm to bypassBTInterval, BT intervals will be 1s from this realm onwards
+bypassBTInterval := 1                                                               ; --- Determines which realm to bypassBTInterval, BT intervals will be 1s from this realm onwards
 
 ;-- BreakThrough Formula Calculation  
 noOfRealmsBTSkip := 10                                                              ; --- IMPORTANT: Breakthrough time set to 1s, min: 0 [Set value to realm where BT time <1s]
